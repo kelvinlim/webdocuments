@@ -8,6 +8,7 @@ The OnlyOffice integration contract lives in three endpoints:
   POST /callback/{id}         the Document Server saves the edited doc back
   GET  /editor/{id}           serves the page that embeds DocsAPI.DocEditor
 """
+import io
 import json
 import logging
 from contextlib import asynccontextmanager
@@ -26,7 +27,7 @@ from fastapi.responses import (
 from fastapi.templating import Jinja2Templates
 from starlette.middleware.sessions import SessionMiddleware
 
-from . import config, jwt_utils, onlyoffice, security, storage
+from . import config, jwt_utils, onlyoffice, references, security, storage
 
 log = logging.getLogger("webdocs")
 
@@ -113,6 +114,43 @@ async def upload(request: Request, file: UploadFile = File(...)):
             error="Only .docx files are supported.",
         )
     storage.create_document(user, file.filename, file.file)
+    return _redirect("/documents")
+
+
+@app.post("/references/generate")
+def generate_references(request: Request, doc_ids: list[str] = Form(default=[])):
+    """Build a consolidated 'Bibliography & References Cited' .docx from the
+    Zotero citations across the selected documents, and store it as a new doc."""
+    user = security.get_user(request)
+    if not user:
+        return _redirect("/login")
+
+    def _err(msg: str):
+        return _render(
+            request, "documents.html", user=user,
+            docs=storage.list_documents(user), error=msg,
+        )
+
+    if len(doc_ids) < 2:
+        return _err("Select at least two documents to consolidate references from.")
+    try:
+        items = references.extract_cited_items(doc_ids, user)
+    except PermissionError:
+        return Response("Not found", status_code=404)
+    except Exception:
+        log.exception("references: extraction failed")
+        return _err("Could not read citations from the selected documents.")
+
+    if not items:
+        return _err("No Zotero citations found in the selected documents.")
+
+    try:
+        data = references.render_references_docx(items)
+    except Exception:
+        log.exception("references: rendering failed")
+        return _err("Could not render the references document. Is pandoc installed?")
+
+    storage.create_document(user, "Bibliography & References Cited.docx", io.BytesIO(data))
     return _redirect("/documents")
 
 

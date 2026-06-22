@@ -2,6 +2,12 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
+# pandoc renders the consolidated "References Cited" .docx (app/references.py).
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends pandoc \
+    && rm -rf /var/lib/apt/lists/* \
+    && pandoc --version | head -1
+
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 

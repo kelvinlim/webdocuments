@@ -13,6 +13,25 @@ the make-or-break risk — is confirmed.
 Log in (username/password) → upload a `.docx` → pick it from the list → edit in
 OnlyOffice with the Zotero plugin → download the result.
 
+## Generate a consolidated "References Cited" document
+
+For NIH submissions, **Bibliography & References Cited** is a separate ASSIST
+attachment. Zotero can't keep a *live* bibliography in a document separate from its
+citations, so instead the connector reads the Zotero citations across two or more of
+your documents (e.g. Specific Aims + Research Strategy), deduplicates the cited
+works, and renders a standalone references `.docx`.
+
+On the documents page, tick the source documents and click **Generate References
+Cited**. The result appears as a new document you can review and download. It is
+rendered with `pandoc --citeproc` ([app/references.py](app/references.py)) using a
+CSL style (default AMA — override with `CSL_STYLE_PATH`; drop a `.csl` in
+`app/styles/`). Source documents are never modified — extraction is read-only.
+
+Review caveats: it's a flattened snapshot (not live — regenerate after editing
+citations); reference numbering is standalone (independent of in-text numbers in the
+source docs); and PMCIDs (required by NIH public access) may need manual checking —
+they're emitted only if recorded in Zotero and printed by the chosen style.
+
 ## Run it (local dev, Podman)
 
 ```bash

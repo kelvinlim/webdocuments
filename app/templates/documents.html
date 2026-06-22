@@ -20,20 +20,36 @@
   </form>
 
   {% if docs %}
-  <table>
-    <thead><tr><th>Title</th><th></th></tr></thead>
-    <tbody>
-      {% for d in docs %}
-      <tr>
-        <td>{{ d.title }}</td>
-        <td style="text-align:right; white-space:nowrap">
-          <a href="{{ root_path }}/editor/{{ d.id }}">Edit</a> &nbsp;
-          <a href="{{ root_path }}/documents/{{ d.id }}/download">Download</a>
-        </td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
+  <form method="post" action="{{ root_path }}/references/generate">
+    <table>
+      <thead><tr><th></th><th>Title</th><th></th></tr></thead>
+      <tbody>
+        {% for d in docs %}
+        <tr>
+          <td><input type="checkbox" name="doc_ids" value="{{ d.id }}"></td>
+          <td>{{ d.title }}</td>
+          <td style="text-align:right; white-space:nowrap">
+            <a href="{{ root_path }}/editor/{{ d.id }}">Edit</a> &nbsp;
+            <a href="{{ root_path }}/documents/{{ d.id }}/download">Download</a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% if docs|length >= 2 %}
+    <p>
+      <button type="submit">Generate References Cited</button>
+      <span class="muted">Tick two or more documents (e.g. Specific Aims +
+      Research Strategy) to build a consolidated, deduplicated
+      Bibliography &amp; References Cited document from their Zotero citations.</span>
+    </p>
+    <p class="muted">
+      Review before submission: it's a flattened snapshot (not live — regenerate
+      after editing citations); numbering is standalone (independent of in-text
+      numbers in the source docs); and PMCIDs may need to be added manually.
+    </p>
+    {% endif %}
+  </form>
   {% else %}
   <p class="muted">No documents yet — upload a .docx to get started.</p>
   {% endif %}

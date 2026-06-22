@@ -38,6 +38,14 @@ CONNECTOR_INTERNAL_URL = os.environ.get(
 # URL the browser loads the editor API from.
 DS_API_JS = f"{ONLYOFFICE_DS_PUBLIC_URL}/web-apps/apps/api/documents/api.js"
 
+# CSL style used to render the consolidated "References Cited" document.
+# Default is AMA (numbered biomedical style, a common NIH fit); override with
+# CSL_STYLE_PATH to swap in another .csl (e.g. Vancouver, APA).
+STYLES_DIR = Path(__file__).parent / "styles"
+CSL_STYLE_PATH = Path(
+    os.environ.get("CSL_STYLE_PATH", STYLES_DIR / "american-medical-association.csl")
+)
+
 
 def _parse_users(raw: str) -> dict[str, str]:
     users: dict[str, str] = {}
