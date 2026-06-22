@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} — webdocs{% endblock %}
+{% block head %}
+<style>
+  /* OnlyOffice injects the editor as an iframe sized height:100% into
+     #placeholder; a percentage height needs every ancestor to have a height,
+     or the editor collapses to ~one line. Give the whole chain a height and
+     lay out header + editor as a flex column so the editor fills the rest. */
+  html, body { height: 100%; }
+  body { display: flex; flex-direction: column; }
+  header { flex: 0 0 auto; }
+  #placeholder { flex: 1 1 auto; min-height: 0; }
+</style>
+{% endblock %}
+{% block body %}
+<header>
+  <a href="{{ root_path }}/documents">&larr; Documents</a>
+  <span class="muted">{{ title }}</span>
+</header>
+<div id="placeholder"></div>
+
+<script src="{{ ds_api_js }}"></script>
+<script>
+  // Config is built + JWT-signed server-side; the Zotero plugin is part of the
+  // Document Server, so it appears in the editor's Plugins toolbar.
+  var config = {{ config_json | safe }};
+  config.width = "100%";
+  config.height = "100%";
+  new DocsAPI.DocEditor("placeholder", config);
+</script>
+{% endblock %}

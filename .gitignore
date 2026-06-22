@@ -1,0 +1,12 @@
+# Demo file store (uploaded + edited documents)
+/data/
+
+# Local env
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/

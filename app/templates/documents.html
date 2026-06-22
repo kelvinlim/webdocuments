@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Documents — webdocs{% endblock %}
+{% block body %}
+<header>
+  <strong>webdocs</strong>
+  <span class="muted">
+    {{ user }} &nbsp;
+    <form method="post" action="{{ root_path }}/logout" style="display:inline">
+      <button type="submit">Sign out</button>
+    </form>
+  </span>
+</header>
+<main>
+  <h1>Your documents</h1>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+  <form method="post" action="{{ root_path }}/documents/upload" enctype="multipart/form-data">
+    <input type="file" name="file" accept=".docx" required>
+    <input type="submit" value="Upload .docx">
+  </form>
+
+  {% if docs %}
+  <table>
+    <thead><tr><th>Title</th><th></th></tr></thead>
+    <tbody>
+      {% for d in docs %}
+      <tr>
+        <td>{{ d.title }}</td>
+        <td style="text-align:right; white-space:nowrap">
+          <a href="{{ root_path }}/editor/{{ d.id }}">Edit</a> &nbsp;
+          <a href="{{ root_path }}/documents/{{ d.id }}/download">Download</a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="muted">No documents yet — upload a .docx to get started.</p>
+  {% endif %}
+</main>
+{% endblock %}

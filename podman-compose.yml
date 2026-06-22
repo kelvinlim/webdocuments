@@ -1,0 +1,55 @@
+# podman-compose up --build
+#
+# Two services on a shared network:
+#   documentserver  OnlyOffice Docs (editor engine + bundled Zotero plugin)
+#   connector       this FastAPI app
+#
+# The connector reaches the DS-published API in the browser via
+# ONLYOFFICE_DS_PUBLIC_URL; the DS reaches the connector server-to-server via
+# CONNECTOR_INTERNAL_URL=http://connector:8000 (compose service name).
+#
+# TLS + the /webdocs sub-path are terminated by the HOST nginx (see nginx/),
+# not here. For pure local dev, hit the connector directly at :8000.
+
+services:
+  documentserver:
+    image: onlyoffice/documentserver:latest
+    environment:
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-dev-onlyoffice-secret}
+      - JWT_HEADER=Authorization
+    # Bound to loopback only; the host nginx proxies /webdocs/ds/ -> :8090.
+    # 8090 keeps clear of the omnikog app port range (8000-8005, 8010, 8020).
+    ports:
+      - "127.0.0.1:8090:80"
+    volumes:
+      - ds_data:/var/www/onlyoffice/Data
+
+  connector:
+    build:
+      context: .
+      dockerfile: Containerfile
+    # Rootless podman: map the host user into the container (keep-id) and run as
+    # that uid so files written to the ./data bind mount stay owned by the host
+    # user. The :z volume suffix relabels the mount for SELinux (RHEL enforcing).
+    userns_mode: "keep-id"
+    user: "1000:1000"
+    environment:
+      - SECRET_KEY=${SECRET_KEY:-dev-insecure-change-me}
+      - ONLYOFFICE_JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-dev-onlyoffice-secret}
+      - ONLYOFFICE_DS_PUBLIC_URL=${ONLYOFFICE_DS_PUBLIC_URL:-http://localhost:8090}
+      - CONNECTOR_INTERNAL_URL=http://connector:8000
+      - ROOT_PATH=${ROOT_PATH:-}
+      - DEMO_USERS=${DEMO_USERS:-demo:demo123}
+      - STORAGE_DIR=/data
+    # Bound to loopback only; the host nginx proxies /webdocs/ -> :8030.
+    # 8030 avoids the omnikog app port range (8000 is taken by qualtrics).
+    ports:
+      - "127.0.0.1:8030:8000"
+    volumes:
+      - ./data:/data:z
+    depends_on:
+      - documentserver
+
+volumes:
+  ds_data:

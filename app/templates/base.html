@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}webdocs{% endblock %}</title>
+  <style>
+    :root { color-scheme: light dark; }
+    body { font-family: system-ui, sans-serif; margin: 0; }
+    header { display: flex; justify-content: space-between; align-items: center;
+             padding: .75rem 1.25rem; border-bottom: 1px solid #8884; }
+    header a { text-decoration: none; }
+    main { max-width: 820px; margin: 2rem auto; padding: 0 1.25rem; }
+    h1 { font-size: 1.3rem; }
+    .error { color: #c0392b; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: .5rem .4rem; border-bottom: 1px solid #8883; }
+    button, input[type=submit] { cursor: pointer; }
+    .muted { opacity: .65; font-size: .85rem; }
+  </style>
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% block body %}{% endblock %}
+</body>
+</html>
