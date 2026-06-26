@@ -39,12 +39,21 @@ CONNECTOR_INTERNAL_URL = os.environ.get(
 DS_API_JS = f"{ONLYOFFICE_DS_PUBLIC_URL}/web-apps/apps/api/documents/api.js"
 
 # CSL style used to render the consolidated "References Cited" document.
-# Default is AMA (numbered biomedical style, a common NIH fit); override with
-# CSL_STYLE_PATH to swap in another .csl (e.g. Vancouver, APA).
+# Default is AMA (numbered biomedical style, a common NIH fit). Override with
+# CSL_STYLE_PATH: a bare filename (e.g. "vancouver.csl") is resolved against
+# app/styles/; a value containing "/" is treated as an absolute/explicit path.
 STYLES_DIR = Path(__file__).parent / "styles"
-CSL_STYLE_PATH = Path(
-    os.environ.get("CSL_STYLE_PATH", STYLES_DIR / "american-medical-association.csl")
-)
+_csl = os.environ.get("CSL_STYLE_PATH", "").strip()
+if not _csl:
+    CSL_STYLE_PATH = STYLES_DIR / "american-medical-association.csl"
+elif "/" in _csl:
+    CSL_STYLE_PATH = Path(_csl)
+else:
+    CSL_STYLE_PATH = STYLES_DIR / _csl
+
+# Pandoc reference doc that sets the generated bibliography's page/formatting
+# (0.5" margins, Arial 11). Built once and shipped in app/styles/.
+REFERENCE_DOCX = STYLES_DIR / "reference.docx"
 
 
 def _parse_users(raw: str) -> dict[str, str]:

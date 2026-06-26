@@ -19,6 +19,7 @@ The JSON's citationItems[] each carry `itemData` (the work's CSL-JSON) and
 """
 import json
 import logging
+import re
 import subprocess
 import tempfile
 import xml.etree.ElementTree as ET
@@ -132,6 +133,35 @@ def _pmid(item: dict) -> str:
     return ""
 
 
+def available_styles() -> list[dict]:
+    """List the bundled CSL styles (filename + human title from <title>),
+    sorted by title. Used to populate the style picker."""
+    out = []
+    for p in sorted(config.STYLES_DIR.glob("*.csl")):
+        title = p.stem
+        try:
+            m = re.search(r"<title[^>]*>([^<]+)</title>", p.read_text(encoding="utf-8"))
+            if m:
+                title = m.group(1).strip()
+        except OSError:
+            pass
+        out.append({"file": p.name, "title": title})
+    out.sort(key=lambda s: s["title"].lower())
+    return out
+
+
+def resolve_style(name: str | None):
+    """Map a chosen style filename to a path under STYLES_DIR, rejecting
+    anything that isn't a bundled style (no path traversal). Falls back to the
+    configured default when name is empty."""
+    if not name:
+        return config.CSL_STYLE_PATH
+    valid = {s["file"] for s in available_styles()}
+    if name not in valid:
+        raise ValueError(f"unknown style: {name}")
+    return config.STYLES_DIR / name
+
+
 def extract_cited_items(doc_ids: list[str], owner: str) -> list[dict]:
     """Read every Zotero-cited work across the given (owner's) documents,
     deduplicated. Raises PermissionError if a doc isn't owned by `owner`."""
@@ -155,14 +185,15 @@ def extract_cited_items(doc_ids: list[str], owner: str) -> list[dict]:
     return list(seen.values())
 
 
-def render_references_docx(items: list[dict]) -> bytes:
+def render_references_docx(items: list[dict], csl_path=None) -> bytes:
     """Render the cited works as a bibliography-only .docx via pandoc.
 
     Uses `nocite: '@*'` so every item appears in the bibliography with no
     in-text citation markers, and an empty body so the doc is the references
-    list only.
+    list only. Page formatting (0.5" margins, Arial 11) comes from the bundled
+    reference doc. `csl_path` selects the style (defaults to the configured one).
     """
-    csl = config.CSL_STYLE_PATH
+    csl = csl_path or config.CSL_STYLE_PATH
     if not Path(csl).exists():
         raise FileNotFoundError(f"CSL style not found: {csl}")
 
@@ -201,8 +232,10 @@ def render_references_docx(items: list[dict]) -> bytes:
             "--citeproc",
             "--bibliography", str(refs),
             "--csl", str(csl),
-            "-o", str(out),
         ]
+        if Path(config.REFERENCE_DOCX).exists():
+            cmd += ["--reference-doc", str(config.REFERENCE_DOCX)]
+        cmd += ["-o", str(out)]
         proc = subprocess.run(
             cmd, input=body.encode("utf-8"), capture_output=True, timeout=60
         )

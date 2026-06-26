@@ -38,6 +38,14 @@
     </table>
     {% if docs|length >= 2 %}
     <p>
+      <label>Style:
+        <select name="style">
+          {% for s in styles %}
+          <option value="{{ s.file }}"{% if s.file == default_style %} selected{% endif %}>{{ s.title }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      &nbsp;
       <button type="submit">Generate References Cited</button>
       <span class="muted">Tick two or more documents (e.g. Specific Aims +
       Research Strategy) to build a consolidated, deduplicated

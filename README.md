@@ -21,11 +21,24 @@ citations, so instead the connector reads the Zotero citations across two or mor
 your documents (e.g. Specific Aims + Research Strategy), deduplicates the cited
 works, and renders a standalone references `.docx`.
 
-On the documents page, tick the source documents and click **Generate References
-Cited**. The result appears as a new document you can review and download. It is
-rendered with `pandoc --citeproc` ([app/references.py](app/references.py)) using a
-CSL style (default AMA — override with `CSL_STYLE_PATH`; drop a `.csl` in
-`app/styles/`). Source documents are never modified — extraction is read-only.
+On the documents page, tick the source documents, pick a **style** from the
+dropdown, and click **Generate References Cited**. The result appears as a new
+document you can review and download, rendered with `pandoc --citeproc`
+([app/references.py](app/references.py)) and formatted with **0.5″ margins, Arial
+11** (via the bundled `app/styles/reference.docx`). Source documents are never
+modified — extraction is read-only.
+
+Bundled styles (drop more `.csl` files in `app/styles/` and rebuild to add to the
+picker):
+
+| Style | Notes |
+|---|---|
+| AMA Manual of Style 11th edition | numbered biomedical (default) |
+| APA Style 7th edition | author–date |
+| NIH grant (AMA + PMCID) | AMA with `PMCID:` appended — for NIH public-access compliance |
+
+The dropdown default can be set with `CSL_STYLE_PATH` (a bare filename resolved
+under `app/styles/`, e.g. `vancouver.csl`).
 
 Review caveats: it's a flattened snapshot (not live — regenerate after editing
 citations); reference numbering is standalone (independent of in-text numbers in the

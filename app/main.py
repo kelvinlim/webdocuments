@@ -62,6 +62,19 @@ def _redirect(path: str) -> RedirectResponse:
     return RedirectResponse(url=f"{config.ROOT_PATH}{path}", status_code=303)
 
 
+def _documents_page(request: Request, user: str, error: str | None = None) -> HTMLResponse:
+    """Render the documents list with the data its template needs (docs +
+    available citation styles for the References Cited picker)."""
+    return _render(
+        request, "documents.html",
+        user=user,
+        docs=storage.list_documents(user),
+        styles=references.available_styles(),
+        default_style=config.CSL_STYLE_PATH.name,
+        error=error,
+    )
+
+
 # --- auth ---------------------------------------------------------------------
 
 @app.get("/", response_class=HTMLResponse)
@@ -97,7 +110,7 @@ def documents(request: Request):
     user = security.get_user(request)
     if not user:
         return _redirect("/login")
-    return _render(request, "documents.html", user=user, docs=storage.list_documents(user))
+    return _documents_page(request, user)
 
 
 @app.post("/documents/upload")
@@ -106,49 +119,56 @@ async def upload(request: Request, file: UploadFile = File(...)):
     if not user:
         return _redirect("/login")
     if not (file.filename or "").lower().endswith(".docx"):
-        return _render(
-            request,
-            "documents.html",
-            user=user,
-            docs=storage.list_documents(user),
-            error="Only .docx files are supported.",
-        )
+        return _documents_page(request, user, error="Only .docx files are supported.")
     storage.create_document(user, file.filename, file.file)
     return _redirect("/documents")
 
 
 @app.post("/references/generate")
-def generate_references(request: Request, doc_ids: list[str] = Form(default=[])):
+def generate_references(
+    request: Request,
+    doc_ids: list[str] = Form(default=[]),
+    style: str = Form(default=""),
+):
     """Build a consolidated 'Bibliography & References Cited' .docx from the
-    Zotero citations across the selected documents, and store it as a new doc."""
+    Zotero citations across the selected documents, and store it as a new doc.
+    `style` picks the CSL style (a bundled filename); empty = configured default."""
     user = security.get_user(request)
     if not user:
         return _redirect("/login")
 
-    def _err(msg: str):
-        return _render(
-            request, "documents.html", user=user,
-            docs=storage.list_documents(user), error=msg,
-        )
-
     if len(doc_ids) < 2:
-        return _err("Select at least two documents to consolidate references from.")
+        return _documents_page(
+            request, user,
+            error="Select at least two documents to consolidate references from.",
+        )
+    try:
+        csl = references.resolve_style(style)
+    except ValueError:
+        return _documents_page(request, user, error="Unknown citation style.")
     try:
         items = references.extract_cited_items(doc_ids, user)
     except PermissionError:
         return Response("Not found", status_code=404)
     except Exception:
         log.exception("references: extraction failed")
-        return _err("Could not read citations from the selected documents.")
+        return _documents_page(
+            request, user, error="Could not read citations from the selected documents."
+        )
 
     if not items:
-        return _err("No Zotero citations found in the selected documents.")
+        return _documents_page(
+            request, user, error="No Zotero citations found in the selected documents."
+        )
 
     try:
-        data = references.render_references_docx(items)
+        data = references.render_references_docx(items, csl_path=csl)
     except Exception:
         log.exception("references: rendering failed")
-        return _err("Could not render the references document. Is pandoc installed?")
+        return _documents_page(
+            request, user,
+            error="Could not render the references document. Is pandoc installed?",
+        )
 
     storage.create_document(user, "Bibliography & References Cited.docx", io.BytesIO(data))
     return _redirect("/documents")

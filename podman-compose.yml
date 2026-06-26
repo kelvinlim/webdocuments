@@ -42,6 +42,9 @@ services:
       - ROOT_PATH=${ROOT_PATH:-}
       - DEMO_USERS=${DEMO_USERS:-demo:demo123}
       - STORAGE_DIR=/data
+      # CSL style for the generated References Cited doc. Bare filename resolved
+      # under app/styles/ (e.g. vancouver.csl); empty = AMA default.
+      - CSL_STYLE_PATH=${CSL_STYLE_PATH:-}
     # Bound to loopback only; the host nginx proxies /webdocs/ -> :8030.
     # 8030 avoids the omnikog app port range (8000 is taken by qualtrics).
     ports:
